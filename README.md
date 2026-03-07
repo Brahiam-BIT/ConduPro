@@ -1,6 +1,6 @@
 # ConduPro
 
-> Sistema de gestión para autoescuelas.
+> Sistema de gestión para escuelas de conducción.
 
 ---
 
@@ -129,3 +129,9 @@ El cuerpo del Pull Request debe incluir como mínimo:
 ---
 
 > Este enfoque permite mantener un flujo de trabajo **claro, colaborativo y escalable**, adecuado para el tamaño y alcance del proyecto ConduPro.
+
+
+---
+
+### Error en clase
+![alt text](Error.JPG)
