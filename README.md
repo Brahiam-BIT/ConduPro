@@ -1,6 +1,6 @@
 # ConduPro
 
-> Sistema de gestión para autoescuelas.
+> Sistema de gestión para escuelas de conducción.
 
 ---
 
