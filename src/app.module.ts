@@ -13,6 +13,7 @@ import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { ReportsModule } from './reports/reports.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
 
@@ -41,6 +42,7 @@ import { UsersModule } from './users/users.module';
     SchedulingModule,
     AssignmentModule,
     NotificationsModule,
+    ReportsModule,
   ],
   controllers: [HealthController],
   providers: [
