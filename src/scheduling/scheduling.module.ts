@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { Classroom } from './entity/classroom.entity';
 import { Schedule } from './entity/schedule.entity';
@@ -13,7 +14,11 @@ import { SchedulingService } from './scheduling.service';
 import { SchedulingValidationService } from './service/scheduling-validation.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Vehicle, Classroom, Schedule]), UsersModule],
+  imports: [
+    TypeOrmModule.forFeature([Vehicle, Classroom, Schedule]),
+    UsersModule,
+    NotificationsModule,
+  ],
   controllers: [SchedulesController],
   providers: [
     SchedulingService,

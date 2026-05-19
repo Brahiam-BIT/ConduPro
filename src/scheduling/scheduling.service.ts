@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
@@ -10,6 +11,7 @@ import { plainToInstance } from 'class-transformer';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import { AvailabilityQueryDto } from './dto/availability-query.dto';
 import { AvailabilityResponseDto } from './dto/availability-response.dto';
@@ -32,12 +34,15 @@ import {
 
 @Injectable()
 export class SchedulingService {
+  private readonly logger = new Logger(SchedulingService.name);
+
   constructor(
     private readonly scheduleRepository: ScheduleRepository,
     private readonly vehicleRepository: VehicleRepository,
     private readonly classroomRepository: ClassroomRepository,
     private readonly validationService: SchedulingValidationService,
     private readonly usersService: UsersService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async findAll(
@@ -90,8 +95,18 @@ export class SchedulingService {
     const schedule = await this.getScheduleOrFail(id);
     this.assertCanManageSchedule(schedule, currentUser);
 
+    const previousStatus = schedule.status;
     await this.scheduleRepository.updateStatus(id, dto.status);
     const updated = await this.getScheduleOrFail(id);
+
+    if (dto.status === ScheduleStatus.CONFIRMED && previousStatus !== ScheduleStatus.CONFIRMED) {
+      await this.safeNotify(() => this.notificationsService.notifyScheduleConfirmed(updated));
+    }
+
+    if (dto.status === ScheduleStatus.CANCELLED && previousStatus !== ScheduleStatus.CANCELLED) {
+      await this.safeNotify(() => this.notificationsService.notifyScheduleCancelled(updated));
+    }
+
     return this.toResponseDto(updated);
   }
 
@@ -100,6 +115,8 @@ export class SchedulingService {
     this.assertCanManageSchedule(schedule, currentUser);
 
     await this.scheduleRepository.updateStatus(id, ScheduleStatus.CANCELLED);
+    const cancelled = await this.getScheduleOrFail(id);
+    await this.safeNotify(() => this.notificationsService.notifyScheduleCancelled(cancelled));
     await this.scheduleRepository.softDelete(id);
   }
 
@@ -226,7 +243,23 @@ export class SchedulingService {
     });
 
     const saved = await this.scheduleRepository.save(schedule);
-    return this.getScheduleOrFail(saved.id);
+    const persisted = await this.getScheduleOrFail(saved.id);
+
+    if (status === ScheduleStatus.CONFIRMED) {
+      await this.safeNotify(() =>
+        this.notificationsService.notifyScheduleConfirmed(persisted),
+      );
+    }
+
+    return persisted;
+  }
+
+  private async safeNotify(action: () => Promise<void>): Promise<void> {
+    try {
+      await action();
+    } catch (error) {
+      this.logger.error('Error al enviar notificación', error);
+    }
   }
 
   private async getScheduleOrFail(id: string): Promise<Schedule> {

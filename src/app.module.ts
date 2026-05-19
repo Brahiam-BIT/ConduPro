@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AssignmentModule } from './assignment/assignment.module';
@@ -11,6 +12,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import configuration from './config/configuration';
 import { envValidationSchema } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { SchedulingModule } from './scheduling/scheduling.module';
 import { UsersModule } from './users/users.module';
 
@@ -25,6 +27,7 @@ import { UsersModule } from './users/users.module';
         abortEarly: false,
       },
     }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         name: 'default',
@@ -37,6 +40,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     SchedulingModule,
     AssignmentModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [
