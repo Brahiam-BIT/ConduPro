@@ -17,13 +17,14 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
+import { ApiStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
@@ -44,14 +45,15 @@ export class SchedulesController {
   constructor(private readonly schedulingService: SchedulingService) {}
 
   @Get('availability')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Slots libres de un instructor en una fecha' })
   @ApiOkResponse({ type: AvailabilityResponseDto })
-  @ApiUnauthorizedResponse({ description: 'No autenticado' })
   getAvailability(@Query() query: AvailabilityQueryDto): Promise<AvailabilityResponseDto> {
     return this.schedulingService.getAvailability(query);
   }
 
   @Get()
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Listar clases agendadas (con filtros y paginación)' })
   @ApiOkResponse({
     schema: {
@@ -71,9 +73,11 @@ export class SchedulesController {
   }
 
   @Get(':id')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Obtener una clase por ID' })
   @ApiOkResponse({ type: ScheduleResponseDto })
   @ApiNotFoundResponse({ description: 'Clase no encontrada' })
+  @ApiForbiddenResponse({ description: 'Sin permisos para ver la clase' })
   findOne(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: JwtPayload,
@@ -83,6 +87,7 @@ export class SchedulesController {
 
   @Post()
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Crear una clase (valida conflictos)' })
   @ApiCreatedResponse({ type: ScheduleResponseDto })
   @ApiConflictResponse({ description: 'Conflicto de horario' })
@@ -96,9 +101,11 @@ export class SchedulesController {
 
   @Patch(':id/status')
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Actualizar estado de una clase' })
   @ApiOkResponse({ type: ScheduleResponseDto })
   @ApiNotFoundResponse({ description: 'Clase no encontrada' })
+  @ApiForbiddenResponse({ description: 'Sin permisos' })
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateScheduleStatusDto,
@@ -110,9 +117,11 @@ export class SchedulesController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Cancelar clase (soft delete)' })
-  @ApiOkResponse({ description: 'Clase cancelada' })
+  @ApiNoContentResponse({ description: 'Clase cancelada' })
   @ApiNotFoundResponse({ description: 'Clase no encontrada' })
+  @ApiForbiddenResponse({ description: 'Sin permisos' })
   cancel(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: JwtPayload,

@@ -5,9 +5,9 @@ import {
   ApiOkResponse,
   ApiOperation,
   ApiTags,
-  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 
+import { ApiStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
@@ -22,6 +22,7 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get('my')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Listar notificaciones del usuario autenticado' })
   @ApiOkResponse({
     description: 'Listado paginado de notificaciones',
@@ -37,7 +38,6 @@ export class NotificationsController {
       },
     },
   })
-  @ApiUnauthorizedResponse({ description: 'No autenticado' })
   findMine(
     @CurrentUser() user: JwtPayload,
     @Query() query: NotificationQueryDto,
@@ -46,10 +46,10 @@ export class NotificationsController {
   }
 
   @Patch(':id/read')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Marcar notificación como leída' })
   @ApiOkResponse({ type: NotificationResponseDto })
   @ApiNotFoundResponse({ description: 'Notificación no encontrada' })
-  @ApiUnauthorizedResponse({ description: 'No autenticado' })
   markAsRead(
     @Param('id', ParseUUIDPipe) id: string,
     @CurrentUser() user: JwtPayload,

@@ -35,6 +35,11 @@ import { UsersModule } from './users/users.module';
         ttl: 60_000,
         limit: 100,
       },
+      {
+        name: 'auth-login',
+        ttl: 60_000,
+        limit: 5,
+      },
     ]),
     DatabaseModule,
     UsersModule,

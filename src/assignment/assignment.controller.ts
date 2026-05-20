@@ -9,6 +9,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
+import { ApiStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
@@ -25,6 +26,7 @@ export class AssignmentController {
 
   @Post('auto-assign')
   @Roles(UserRole.STUDENT, UserRole.ADMIN)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Asignación automática de clase' })
   @ApiCreatedResponse({ type: ScheduleResponseDto })
   @ApiNotFoundResponse({ description: 'Sin instructores, vehículos, aulas o disponibilidad' })

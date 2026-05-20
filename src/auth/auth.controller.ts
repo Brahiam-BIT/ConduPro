@@ -12,6 +12,7 @@ import {
   ApiConflictResponse,
   ApiCreatedResponse,
   ApiForbiddenResponse,
+  ApiNoContentResponse,
   ApiOkResponse,
   ApiOperation,
   ApiTags,
@@ -21,6 +22,7 @@ import {
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 
+import { ApiStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Public } from '../common/decorators/public.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
@@ -42,6 +44,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Registro de usuario (rol STUDENT por defecto)' })
   @ApiCreatedResponse({ type: AuthTokensDto })
   @ApiConflictResponse({ description: 'El correo ya está registrado' })
@@ -52,7 +55,8 @@ export class AuthController {
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Throttle({ 'auth-login': { limit: 5, ttl: 60_000 } })
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Inicio de sesión' })
   @ApiOkResponse({ type: AuthTokensDto })
   @ApiUnauthorizedResponse({ description: 'Credenciales inválidas' })
@@ -66,6 +70,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Renovar access token (rota el refresh token)' })
   @ApiOkResponse({ type: AuthTokensDto })
   @ApiUnauthorizedResponse({ description: 'Refresh token inválido o expirado' })
@@ -76,14 +81,16 @@ export class AuthController {
   @Public()
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Cerrar sesión e invalidar refresh token' })
-  @ApiOkResponse({ description: 'Sesión cerrada' })
+  @ApiNoContentResponse({ description: 'Sesión cerrada' })
   async logout(@Body() dto: RefreshTokenDto): Promise<void> {
     await this.authService.logout(dto.refreshToken);
   }
 
   @Get('me')
   @ApiBearerAuth('access-token')
+  @ApiStandardResponses()
   @ApiOperation({ summary: 'Perfil del usuario autenticado' })
   @ApiOkResponse({ type: UserResponseDto })
   @ApiUnauthorizedResponse({ description: 'No autenticado' })

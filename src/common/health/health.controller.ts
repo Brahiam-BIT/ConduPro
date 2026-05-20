@@ -1,5 +1,5 @@
 import { Controller, Get, VERSION_NEUTRAL } from '@nestjs/common';
-import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { Public } from '../decorators/public.decorator';
 
@@ -8,6 +8,7 @@ import { Public } from '../decorators/public.decorator';
 @Controller({ path: 'health', version: VERSION_NEUTRAL })
 export class HealthController {
   @Get()
+  @ApiOperation({ summary: 'Estado de salud del servicio (liveness)' })
   @ApiOkResponse({
     description: 'Estado del servicio.',
     schema: {

@@ -6,6 +6,9 @@ import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 import type { AppConfig } from './config/configuration';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule, {
@@ -38,9 +41,16 @@ async function bootstrap(): Promise<void> {
     }),
   );
 
+  app.useGlobalFilters(new GlobalExceptionFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor(), new ResponseInterceptor());
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('ConduPro API')
-    .setDescription('API REST de la plataforma de gestión para escuelas de conducción.')
+    .setDescription(
+      'API REST de la plataforma de gestión para escuelas de conducción.\n\n' +
+        'Las respuestas exitosas se envuelven en `{ data, meta, timestamp }`. ' +
+        'Los listados paginados incluyen `meta: { total, page, limit }`.',
+    )
     .setVersion('1.0')
     .addBearerAuth(
       {

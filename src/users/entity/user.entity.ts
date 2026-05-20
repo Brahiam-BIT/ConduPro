@@ -29,7 +29,7 @@ export class User {
   @Column({ name: 'last_name' })
   lastName!: string;
 
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   phone!: string | null;
 
   @Column({ type: 'enum', enum: UserRole, default: UserRole.STUDENT })
