@@ -28,4 +28,6 @@ export const envValidationSchema = Joi.object({
   SMTP_USER: Joi.string().optional().allow(''),
   SMTP_PASS: Joi.string().optional().allow(''),
   SMTP_FROM: Joi.string().optional().allow(''),
+  /** Espacio mínimo entre correos (Mailtrap free suele limitar por segundo). */
+  SMTP_MIN_INTERVAL_MS: Joi.number().integer().min(500).max(60_000).optional(),
 });

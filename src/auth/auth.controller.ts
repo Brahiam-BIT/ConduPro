@@ -31,6 +31,7 @@ import { UsersService } from '../users/users.service';
 import { AuthService } from './auth.service';
 import { AuthTokensDto } from './dto/auth-tokens.dto';
 import { LoginDto } from './dto/login.dto';
+import { LogoutDto } from './dto/logout.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RegisterDto } from './dto/register.dto';
 
@@ -84,8 +85,10 @@ export class AuthController {
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Cerrar sesión e invalidar refresh token' })
   @ApiNoContentResponse({ description: 'Sesión cerrada' })
-  async logout(@Body() dto: RefreshTokenDto): Promise<void> {
-    await this.authService.logout(dto.refreshToken);
+  async logout(@Body() dto: LogoutDto): Promise<void> {
+    if (dto.refreshToken?.trim()) {
+      await this.authService.logout(dto.refreshToken);
+    }
   }
 
   @Get('me')

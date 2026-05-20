@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 
 import { AssignmentModule } from './assignment/assignment.module';
+import { CurriculumModule } from './curriculum/curriculum.module';
 import { AuthModule } from './auth/auth.module';
 import { HealthController } from './common/health/health.controller';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -48,6 +49,7 @@ import { UsersModule } from './users/users.module';
     AssignmentModule,
     NotificationsModule,
     ReportsModule,
+    CurriculumModule,
   ],
   controllers: [HealthController],
   providers: [

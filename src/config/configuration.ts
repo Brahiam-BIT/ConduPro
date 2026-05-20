@@ -20,6 +20,8 @@ export type AppConfig = {
     user?: string;
     pass?: string;
     from?: string;
+    /** Mínimo ms entre dos envíos SMTP (Mailtrap free: ~1/s). */
+    minIntervalMs: number;
   };
 };
 
@@ -45,5 +47,6 @@ export default (): AppConfig => ({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM,
+    minIntervalMs: parseInt(process.env.SMTP_MIN_INTERVAL_MS ?? '2100', 10),
   },
 });

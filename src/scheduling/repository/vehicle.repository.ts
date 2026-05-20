@@ -21,4 +21,32 @@ export class VehicleRepository {
       order: { plate: 'ASC' },
     });
   }
+
+  create(data: Partial<Vehicle>): Vehicle {
+    return this.repository.create(data);
+  }
+
+  async save(vehicle: Vehicle): Promise<Vehicle> {
+    return this.repository.save(vehicle);
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.repository.delete(id);
+  }
+
+  async findByPlate(plate: string): Promise<Vehicle | null> {
+    return this.repository.findOne({ where: { plate } });
+  }
+
+  async findPaginated(page: number, limit: number): Promise<[Vehicle[], number]> {
+    return this.repository.findAndCount({
+      order: { plate: 'ASC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+  }
+
+  async countAvailable(): Promise<number> {
+    return this.repository.count({ where: { isAvailable: true } });
+  }
 }

@@ -35,7 +35,7 @@ export class NotificationRepository {
       qb.andWhere('notification.is_read = false');
     }
 
-    qb.orderBy('notification.created_at', 'DESC')
+    qb.orderBy('notification.createdAt', 'DESC')
       .skip((params.page - 1) * params.limit)
       .take(params.limit);
 

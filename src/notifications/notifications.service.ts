@@ -65,26 +65,22 @@ export class NotificationsService {
 
   async notifyScheduleConfirmed(schedule: Schedule): Promise<void> {
     const loaded = await this.loadScheduleWithRelations(schedule.id);
-    await Promise.all([
-      this.deliverToUser(loaded, loaded.student, NotificationType.SCHEDULE_CONFIRMED, () =>
-        buildConfirmationEmail(this.buildEmailContext(loaded, loaded.student)),
-      ),
-      this.deliverToUser(loaded, loaded.instructor, NotificationType.SCHEDULE_CONFIRMED, () =>
-        buildConfirmationEmail(this.buildEmailContext(loaded, loaded.instructor)),
-      ),
-    ]);
+    await this.deliverToUser(loaded, loaded.student, NotificationType.SCHEDULE_CONFIRMED, () =>
+      buildConfirmationEmail(this.buildEmailContext(loaded, loaded.student)),
+    );
+    await this.deliverToUser(loaded, loaded.instructor, NotificationType.SCHEDULE_CONFIRMED, () =>
+      buildConfirmationEmail(this.buildEmailContext(loaded, loaded.instructor)),
+    );
   }
 
   async notifyScheduleCancelled(schedule: Schedule): Promise<void> {
     const loaded = await this.loadScheduleWithRelations(schedule.id);
-    await Promise.all([
-      this.deliverToUser(loaded, loaded.student, NotificationType.SCHEDULE_CANCELLED, () =>
-        buildCancellationEmail(this.buildEmailContext(loaded, loaded.student)),
-      ),
-      this.deliverToUser(loaded, loaded.instructor, NotificationType.SCHEDULE_CANCELLED, () =>
-        buildCancellationEmail(this.buildEmailContext(loaded, loaded.instructor)),
-      ),
-    ]);
+    await this.deliverToUser(loaded, loaded.student, NotificationType.SCHEDULE_CANCELLED, () =>
+      buildCancellationEmail(this.buildEmailContext(loaded, loaded.student)),
+    );
+    await this.deliverToUser(loaded, loaded.instructor, NotificationType.SCHEDULE_CANCELLED, () =>
+      buildCancellationEmail(this.buildEmailContext(loaded, loaded.instructor)),
+    );
   }
 
   async sendTomorrowReminders(): Promise<number> {
@@ -106,17 +102,15 @@ export class NotificationsService {
       .getMany();
 
     for (const schedule of schedules) {
-      await Promise.all([
-        this.deliverToUser(schedule, schedule.student, NotificationType.SCHEDULE_REMINDER, () =>
-          buildReminderEmail(this.buildEmailContext(schedule, schedule.student)),
-        ),
-        this.deliverToUser(
-          schedule,
-          schedule.instructor,
-          NotificationType.SCHEDULE_REMINDER,
-          () => buildReminderEmail(this.buildEmailContext(schedule, schedule.instructor)),
-        ),
-      ]);
+      await this.deliverToUser(schedule, schedule.student, NotificationType.SCHEDULE_REMINDER, () =>
+        buildReminderEmail(this.buildEmailContext(schedule, schedule.student)),
+      );
+      await this.deliverToUser(
+        schedule,
+        schedule.instructor,
+        NotificationType.SCHEDULE_REMINDER,
+        () => buildReminderEmail(this.buildEmailContext(schedule, schedule.instructor)),
+      );
     }
 
     return schedules.length;

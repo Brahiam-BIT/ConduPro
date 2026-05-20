@@ -12,6 +12,8 @@ import { VehicleRepository } from './repository/vehicle.repository';
 import { SchedulesController } from './schedules.controller';
 import { SchedulingService } from './scheduling.service';
 import { SchedulingValidationService } from './service/scheduling-validation.service';
+import { VehiclesController } from './vehicles.controller';
+import { VehiclesService } from './vehicles.service';
 
 @Module({
   imports: [
@@ -19,10 +21,11 @@ import { SchedulingValidationService } from './service/scheduling-validation.ser
     UsersModule,
     NotificationsModule,
   ],
-  controllers: [SchedulesController],
+  controllers: [SchedulesController, VehiclesController],
   providers: [
     SchedulingService,
     SchedulingValidationService,
+    VehiclesService,
     ScheduleRepository,
     VehicleRepository,
     ClassroomRepository,
@@ -30,6 +33,7 @@ import { SchedulingValidationService } from './service/scheduling-validation.ser
   exports: [
     SchedulingService,
     SchedulingValidationService,
+    VehiclesService,
     ScheduleRepository,
     VehicleRepository,
     ClassroomRepository,

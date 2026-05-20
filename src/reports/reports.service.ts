@@ -5,7 +5,15 @@ import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { ScheduleStatus } from '../scheduling/enums/schedule-status.enum';
 import { ScheduleType } from '../scheduling/enums/schedule-type.enum';
 import { Schedule } from '../scheduling/entity/schedule.entity';
+import { VehicleRepository } from '../scheduling/repository/vehicle.repository';
+import { UsersRepository } from '../users/repository/users.repository';
 import { UsersService } from '../users/users.service';
+import {
+  AdminReportSummaryDto,
+  DashboardKpisDto,
+  InstructorReportRowDto,
+  SchedulesByDayPointDto,
+} from './dto/admin-dashboard.dto';
 import { AvailabilityReportDto } from './dto/availability-report.dto';
 import type { DateRangeQueryDto } from './dto/date-range-query.dto';
 import { InstructorReportDto } from './dto/instructor-report.dto';
@@ -29,7 +37,119 @@ export class ReportsService {
   constructor(
     private readonly reportsRepository: ReportsRepository,
     private readonly usersService: UsersService,
+    private readonly usersRepository: UsersRepository,
+    private readonly vehicleRepository: VehicleRepository,
   ) {}
+
+  async getKpis(currentUser: JwtPayload): Promise<DashboardKpisDto> {
+    this.assertAdminOnly(currentUser);
+
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const range = parseDateRange(
+      monthStart.toISOString().slice(0, 10),
+      monthEnd.toISOString().slice(0, 10),
+    );
+    const monthSchedules = await this.reportsRepository.findSchedulesInRange(range);
+    const byStatus = this.countByStatus(monthSchedules);
+    const completed = byStatus[ScheduleStatus.COMPLETED];
+    const nonCancelled = monthSchedules.filter(
+      (s) => s.status !== ScheduleStatus.CANCELLED,
+    ).length;
+
+    return {
+      activeUsers: await this.usersRepository.countActive(),
+      monthSchedules: monthSchedules.length,
+      completionRate:
+        nonCancelled > 0 ? roundTwo((completed / nonCancelled) * 100) : 0,
+      activeVehicles: await this.vehicleRepository.countAvailable(),
+    };
+  }
+
+  async getSchedulesByDay(
+    query: DateRangeQueryDto,
+    currentUser: JwtPayload,
+  ): Promise<SchedulesByDayPointDto[]> {
+    this.assertAdminOnly(currentUser);
+
+    const range = parseDateRange(query.startDate, query.endDate);
+    const schedules = await this.reportsRepository.findSchedulesInRange(range);
+    const byDay = new Map<string, { scheduled: number; completed: number }>();
+
+    for (const schedule of schedules) {
+      const date = schedule.startTime.toISOString().slice(0, 10);
+      const entry = byDay.get(date) ?? { scheduled: 0, completed: 0 };
+      if (schedule.status !== ScheduleStatus.CANCELLED) {
+        entry.scheduled += 1;
+      }
+      if (schedule.status === ScheduleStatus.COMPLETED) {
+        entry.completed += 1;
+      }
+      byDay.set(date, entry);
+    }
+
+    return [...byDay.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, counts]) => ({
+        date,
+        scheduled: counts.scheduled,
+        completed: counts.completed,
+      }));
+  }
+
+  async getByInstructor(
+    query: DateRangeQueryDto,
+    currentUser: JwtPayload,
+  ): Promise<InstructorReportRowDto[]> {
+    this.assertAdminOnly(currentUser);
+
+    const range = parseDateRange(query.startDate, query.endDate);
+    const schedules = await this.reportsRepository.findSchedulesInRange(range);
+    const instructors = await this.reportsRepository.findActiveInstructors();
+
+    return instructors.map((instructor) => {
+      const instructorSchedules = schedules.filter((s) => s.instructorId === instructor.id);
+      const active = instructorSchedules.filter((s) => s.status !== ScheduleStatus.CANCELLED);
+      const completed = instructorSchedules.filter(
+        (s) => s.status === ScheduleStatus.COMPLETED,
+      );
+
+      return {
+        instructorId: instructor.id,
+        instructorName: `${instructor.firstName} ${instructor.lastName}`,
+        totalClasses: active.length,
+        totalHours: roundTwo(this.sumHours(active)),
+        completionRate:
+          active.length > 0 ? roundTwo((completed.length / active.length) * 100) : 0,
+      };
+    });
+  }
+
+  async getAdminSummary(
+    query: DateRangeQueryDto,
+    currentUser: JwtPayload,
+  ): Promise<AdminReportSummaryDto> {
+    this.assertAdminOnly(currentUser);
+
+    const range = parseDateRange(query.startDate, query.endDate);
+    const schedules = await this.reportsRepository.findSchedulesInRange(range);
+    const byStatus = this.countByStatus(schedules);
+    const byType = this.countByType(schedules);
+    const completed = byStatus[ScheduleStatus.COMPLETED];
+    const cancelled = byStatus[ScheduleStatus.CANCELLED];
+    const nonCancelled = schedules.filter((s) => s.status !== ScheduleStatus.CANCELLED).length;
+
+    return {
+      totalSchedules: schedules.length,
+      completed,
+      cancelled,
+      attendanceRate:
+        nonCancelled > 0 ? roundTwo((completed / nonCancelled) * 100) : 0,
+      theoryCount: byType[ScheduleType.THEORY],
+      practiceCount: byType[ScheduleType.PRACTICE],
+    };
+  }
 
   async getSummary(query: DateRangeQueryDto, currentUser: JwtPayload): Promise<SummaryReportDto> {
     this.assertAdminOnly(currentUser);

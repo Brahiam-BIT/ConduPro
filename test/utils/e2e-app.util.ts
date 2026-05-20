@@ -40,7 +40,9 @@ export async function createAuthE2eApp(): Promise<{
               expiresIn: '15m',
               refreshExpiresIn: '7d',
             },
-            smtp: {},
+            smtp: {
+              minIntervalMs: 2100,
+            },
           }),
         ],
       }),

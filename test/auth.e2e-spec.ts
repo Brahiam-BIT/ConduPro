@@ -81,6 +81,11 @@ describe('Auth (e2e)', () => {
       .post('/api/v1/auth/logout')
       .send({ refreshToken: refreshBody.data.refreshToken })
       .expect(204);
+
+    await request(app.getHttpServer())
+      .post('/api/v1/auth/logout')
+      .send({})
+      .expect(204);
   });
 
   it('login con credenciales inválidas retorna 401', async () => {

@@ -76,7 +76,7 @@ export class ScheduleRepository {
       qb.andWhere('schedule.status = :status', { status: params.status });
     }
 
-    qb.orderBy('schedule.start_time', 'ASC')
+    qb.orderBy('schedule.startTime', 'ASC')
       .skip((params.page - 1) * params.limit)
       .take(params.limit);
 
