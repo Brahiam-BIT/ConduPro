@@ -13,6 +13,8 @@ import {
 import { User } from '../../users/entity/user.entity';
 import { ScheduleStatus } from '../enums/schedule-status.enum';
 import { ScheduleType } from '../enums/schedule-type.enum';
+import { LicenseCategory } from '../../curriculum/entity/license-category.entity';
+import { TheoryTopic } from '../../curriculum/entity/theory-topic.entity';
 import { Classroom } from './classroom.entity';
 import { Vehicle } from './vehicle.entity';
 
@@ -55,6 +57,20 @@ export class Schedule {
   @ManyToOne(() => Classroom, { nullable: true, onDelete: 'SET NULL' })
   @JoinColumn({ name: 'classroom_id' })
   classroom!: Classroom | null;
+
+  @Column({ name: 'license_category_id', type: 'uuid', nullable: true })
+  licenseCategoryId!: string | null;
+
+  @ManyToOne(() => LicenseCategory, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'license_category_id' })
+  licenseCategory!: LicenseCategory | null;
+
+  @Column({ name: 'theory_topic_id', type: 'uuid', nullable: true })
+  theoryTopicId!: string | null;
+
+  @ManyToOne(() => TheoryTopic, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'theory_topic_id' })
+  theoryTopic!: TheoryTopic | null;
 
   @Column({ name: 'start_time', type: 'timestamptz' })
   startTime!: Date;

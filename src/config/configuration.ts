@@ -23,6 +23,10 @@ export type AppConfig = {
     /** Mínimo ms entre dos envíos SMTP (Mailtrap free: ~1/s). */
     minIntervalMs: number;
   };
+  throttle: {
+    ttlMs: number;
+    limit: number;
+  };
 };
 
 export default (): AppConfig => ({
@@ -48,5 +52,12 @@ export default (): AppConfig => ({
     pass: process.env.SMTP_PASS,
     from: process.env.SMTP_FROM,
     minIntervalMs: parseInt(process.env.SMTP_MIN_INTERVAL_MS ?? '2100', 10),
+  },
+  throttle: {
+    ttlMs: 60_000,
+    limit:
+      (process.env.NODE_ENV ?? 'development') === 'production'
+        ? parseInt(process.env.THROTTLE_LIMIT ?? '100', 10)
+        : parseInt(process.env.THROTTLE_LIMIT ?? '1000', 10),
   },
 });

@@ -15,6 +15,7 @@ import {
   generateBusinessSlotsForDate,
   startOfDay,
 } from '../scheduling/utils/scheduling-time.util';
+import { StudentEnrollmentService } from '../curriculum/student-enrollment.service';
 import { AutoAssignDto } from './dto/auto-assign.dto';
 
 @Injectable()
@@ -24,10 +25,19 @@ export class AssignmentService {
     private readonly usersService: UsersService,
     private readonly vehicleRepository: VehicleRepository,
     private readonly classroomRepository: ClassroomRepository,
+    private readonly enrollmentService: StudentEnrollmentService,
   ) {}
 
   async autoAssign(dto: AutoAssignDto): Promise<ScheduleResponseDto> {
     await this.usersService.findByIdOrFail(dto.studentId);
+
+    let licenseCategoryId = dto.licenseCategoryId;
+    if (!licenseCategoryId) {
+      const enrollment = await this.enrollmentService.resolvePrimaryActiveEnrollment(
+        dto.studentId,
+      );
+      licenseCategoryId = enrollment?.licenseCategoryId;
+    }
 
     const instructors = await this.usersService.findActiveByRole(UserRole.INSTRUCTOR);
     if (instructors.length === 0) {
@@ -87,6 +97,7 @@ export class AssignmentService {
               endTime: slot.endTime,
               vehicleId: resource.vehicleId ?? undefined,
               classroomId: resource.classroomId ?? undefined,
+              licenseCategoryId: licenseCategoryId ?? undefined,
             };
 
             const schedule = await this.schedulingService.createConfirmed(createDto);

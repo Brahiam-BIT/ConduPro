@@ -22,4 +22,12 @@ export class AutoAssignDto {
   @Type(() => Date)
   @IsDate()
   preferredDate?: Date;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Licencia hacia la que cuenta la clase práctica',
+  })
+  @IsOptional()
+  @IsUUID()
+  licenseCategoryId?: string;
 }

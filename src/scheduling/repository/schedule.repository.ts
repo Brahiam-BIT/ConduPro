@@ -43,7 +43,14 @@ export class ScheduleRepository {
   async findById(id: string): Promise<Schedule | null> {
     return this.repository.findOne({
       where: { id },
-      relations: ['student', 'instructor', 'vehicle', 'classroom'],
+      relations: [
+        'student',
+        'instructor',
+        'vehicle',
+        'classroom',
+        'theoryTopic',
+        'licenseCategory',
+      ],
     });
   }
 
@@ -54,6 +61,8 @@ export class ScheduleRepository {
       .leftJoinAndSelect('schedule.instructor', 'instructor')
       .leftJoinAndSelect('schedule.vehicle', 'vehicle')
       .leftJoinAndSelect('schedule.classroom', 'classroom')
+      .leftJoinAndSelect('schedule.theoryTopic', 'theoryTopic')
+      .leftJoinAndSelect('schedule.licenseCategory', 'licenseCategory')
       .where('schedule.deleted_at IS NULL');
 
     if (params.date) {

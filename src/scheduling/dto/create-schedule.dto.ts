@@ -57,4 +57,21 @@ export class CreateScheduleDto {
   @IsNotEmpty()
   @MaxLength(500)
   notes?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Licencia a la que cuenta esta clase (progreso del estudiante)',
+  })
+  @IsOptional()
+  @IsUUID()
+  licenseCategoryId?: string;
+
+  @ApiPropertyOptional({
+    format: 'uuid',
+    description: 'Tema teórico (solo si type = THEORY)',
+  })
+  @ValidateIf((o: CreateScheduleDto) => o.type === ScheduleType.THEORY)
+  @IsOptional()
+  @IsUUID()
+  theoryTopicId?: string;
 }

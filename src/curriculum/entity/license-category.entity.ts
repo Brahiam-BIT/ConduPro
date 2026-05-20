@@ -36,6 +36,14 @@ export class LicenseCategory {
   @Column({ name: 'default_theory_capacity', type: 'int', default: 20 })
   defaultTheoryCapacity!: number;
 
+  /** Clases prácticas (1 estudiante) requeridas para obtener esta licencia. */
+  @Column({ name: 'required_practice_sessions', type: 'int', default: 0 })
+  requiredPracticeSessions!: number;
+
+  /** Si true, el estudiante debe completar todos los temas teóricos activos del temario. */
+  @Column({ name: 'requires_all_theory_topics', default: true })
+  requiresAllTheoryTopics!: boolean;
+
   @Column({ name: 'is_active', default: true })
   isActive!: boolean;
 

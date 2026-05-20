@@ -25,6 +25,7 @@ import { ScheduleType } from './enums/schedule-type.enum';
 import { ClassroomRepository } from './repository/classroom.repository';
 import { ScheduleRepository } from './repository/schedule.repository';
 import { VehicleRepository } from './repository/vehicle.repository';
+import { StudentEnrollmentService } from '../curriculum/student-enrollment.service';
 import { SchedulingValidationService } from './service/scheduling-validation.service';
 import {
   generateBusinessSlotsForDate,
@@ -43,6 +44,7 @@ export class SchedulingService {
     private readonly validationService: SchedulingValidationService,
     private readonly usersService: UsersService,
     private readonly notificationsService: NotificationsService,
+    private readonly enrollmentService: StudentEnrollmentService,
   ) {}
 
   async findAll(
@@ -105,6 +107,10 @@ export class SchedulingService {
 
     if (dto.status === ScheduleStatus.CANCELLED && previousStatus !== ScheduleStatus.CANCELLED) {
       await this.safeNotify(() => this.notificationsService.notifyScheduleCancelled(updated));
+    }
+
+    if (dto.status === ScheduleStatus.COMPLETED && previousStatus !== ScheduleStatus.COMPLETED) {
+      await this.enrollmentService.handleScheduleStatusChange(updated, dto.status);
     }
 
     return this.toResponseDto(updated);
@@ -236,6 +242,8 @@ export class SchedulingService {
       instructorId: dto.instructorId,
       vehicleId,
       classroomId,
+      licenseCategoryId: dto.licenseCategoryId ?? null,
+      theoryTopicId: dto.type === ScheduleType.THEORY ? (dto.theoryTopicId ?? null) : null,
       startTime,
       endTime,
       status,
@@ -332,6 +340,7 @@ export class SchedulingService {
         firstName: schedule.student.firstName,
         lastName: schedule.student.lastName,
         email: schedule.student.email,
+        phone: schedule.student.phone ?? null,
       };
     }
 
@@ -341,6 +350,7 @@ export class SchedulingService {
         firstName: schedule.instructor.firstName,
         lastName: schedule.instructor.lastName,
         email: schedule.instructor.email,
+        phone: schedule.instructor.phone ?? null,
       };
     }
 
@@ -357,6 +367,21 @@ export class SchedulingService {
       dto.classroom = {
         id: schedule.classroom.id,
         name: schedule.classroom.name,
+      };
+    }
+
+    if (schedule.theoryTopic) {
+      dto.theoryTopic = {
+        id: schedule.theoryTopic.id,
+        title: schedule.theoryTopic.title,
+      };
+    }
+
+    if (schedule.licenseCategory) {
+      dto.licenseCategory = {
+        id: schedule.licenseCategory.id,
+        code: schedule.licenseCategory.code,
+        name: schedule.licenseCategory.name,
       };
     }
 

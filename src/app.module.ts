@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
+
+import { DevThrottlerGuard } from './common/guards/dev-throttler.guard';
 
 import { AssignmentModule } from './assignment/assignment.module';
 import { CurriculumModule } from './curriculum/curriculum.module';
@@ -30,18 +32,25 @@ import { UsersModule } from './users/users.module';
       },
     }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([
-      {
-        name: 'default',
-        ttl: 60_000,
-        limit: 100,
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => {
+        const throttle = config.get<{ ttlMs: number; limit: number }>('throttle', { infer: true });
+        return [
+          {
+            name: 'default',
+            ttl: throttle?.ttlMs ?? 60_000,
+            limit: throttle?.limit ?? 1000,
+          },
+          {
+            name: 'auth-login',
+            ttl: 60_000,
+            limit: 5,
+          },
+        ];
       },
-      {
-        name: 'auth-login',
-        ttl: 60_000,
-        limit: 5,
-      },
-    ]),
+    }),
     DatabaseModule,
     UsersModule,
     AuthModule,
@@ -55,7 +64,7 @@ import { UsersModule } from './users/users.module';
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: DevThrottlerGuard,
     },
     {
       provide: APP_GUARD,

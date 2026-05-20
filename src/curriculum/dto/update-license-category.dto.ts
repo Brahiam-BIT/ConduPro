@@ -22,6 +22,21 @@ export class UpdateLicenseCategoryDto {
   @Max(200)
   defaultTheoryCapacity?: number;
 
+  @ApiPropertyOptional({ description: 'Clases prácticas mínimas para la licencia', example: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(500)
+  requiredPracticeSessions?: number;
+
+  @ApiPropertyOptional({
+    description: 'Exigir completar todos los temas teóricos activos del temario',
+  })
+  @IsOptional()
+  @IsBoolean()
+  requiresAllTheoryTopics?: boolean;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()

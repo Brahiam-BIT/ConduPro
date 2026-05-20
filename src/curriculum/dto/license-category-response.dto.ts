@@ -30,8 +30,16 @@ export class LicenseCategoryResponseDto {
   @ApiProperty()
   isActive!: boolean;
 
-  @ApiProperty({ description: 'Cantidad de temas teóricos activos' })
+  @ApiProperty({ description: 'Cantidad de temas teóricos activos en el temario' })
   topicCount!: number;
+
+  @ApiProperty({ description: 'Clases prácticas requeridas para la licencia', example: 20 })
+  requiredPracticeSessions!: number;
+
+  @ApiProperty({
+    description: 'Si el estudiante debe completar todos los temas teóricos activos',
+  })
+  requiresAllTheoryTopics!: boolean;
 
   @ApiProperty()
   createdAt!: Date;

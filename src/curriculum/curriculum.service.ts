@@ -44,6 +44,12 @@ export class CurriculumService {
     if (dto.defaultTheoryCapacity !== undefined) {
       category.defaultTheoryCapacity = dto.defaultTheoryCapacity;
     }
+    if (dto.requiredPracticeSessions !== undefined) {
+      category.requiredPracticeSessions = dto.requiredPracticeSessions;
+    }
+    if (dto.requiresAllTheoryTopics !== undefined) {
+      category.requiresAllTheoryTopics = dto.requiresAllTheoryTopics;
+    }
     if (dto.isActive !== undefined) category.isActive = dto.isActive;
     const saved = await this.categoryRepo.save(category);
     const withTopics = await this.getCategoryOrFail(saved.id);
@@ -129,6 +135,8 @@ export class CurriculumService {
       groupLabel: category.groupLabel,
       sortOrder: category.sortOrder,
       defaultTheoryCapacity: category.defaultTheoryCapacity,
+      requiredPracticeSessions: category.requiredPracticeSessions,
+      requiresAllTheoryTopics: category.requiresAllTheoryTopics,
       isActive: category.isActive,
       topicCount,
       createdAt: category.createdAt,

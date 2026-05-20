@@ -17,21 +17,21 @@ import { UpdateLicenseCategoryDto } from './dto/update-license-category.dto';
 
 @ApiTags('curriculum')
 @ApiBearerAuth('access-token')
-@Roles(UserRole.ADMIN)
 @Controller({ path: 'license-categories', version: '1' })
 export class LicenseCategoriesController {
   constructor(private readonly curriculumService: CurriculumService) {}
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Listar categorías de licencia (A1, B1, C1, …)' })
   @ApiOkResponse({ type: LicenseCategoryResponseDto, isArray: true })
-  @ApiForbiddenResponse()
   findAll(): Promise<LicenseCategoryResponseDto[]> {
     return this.curriculumService.findAllCategories();
   }
 
   @Get(':id')
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Obtener categoría por ID' })
   @ApiOkResponse({ type: LicenseCategoryResponseDto })
@@ -41,9 +41,11 @@ export class LicenseCategoriesController {
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Actualizar categoría (nombre, descripción, cupo teórico)' })
   @ApiOkResponse({ type: LicenseCategoryResponseDto })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateLicenseCategoryDto,

@@ -34,12 +34,12 @@ import { TheoryTopicResponseDto } from './dto/theory-topic-response.dto';
 
 @ApiTags('curriculum')
 @ApiBearerAuth('access-token')
-@Roles(UserRole.ADMIN)
 @Controller({ path: 'theory-topics', version: '1' })
 export class TheoryTopicsController {
   constructor(private readonly curriculumService: CurriculumService) {}
 
   @Get()
+  @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Listar temas teóricos por categoría' })
   @ApiOkResponse({ type: TheoryTopicResponseDto, isArray: true })
@@ -50,17 +50,21 @@ export class TheoryTopicsController {
   }
 
   @Post()
+  @Roles(UserRole.ADMIN)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Crear tema teórico para una categoría' })
   @ApiCreatedResponse({ type: TheoryTopicResponseDto })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
   create(@Body() dto: CreateTheoryTopicDto): Promise<TheoryTopicResponseDto> {
     return this.curriculumService.createTopic(dto);
   }
 
   @Patch(':id')
+  @Roles(UserRole.ADMIN)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Actualizar tema teórico' })
   @ApiOkResponse({ type: TheoryTopicResponseDto })
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
   update(
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: UpdateTheoryTopicDto,
@@ -69,12 +73,13 @@ export class TheoryTopicsController {
   }
 
   @Delete(':id')
+  @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiStandardResponses()
   @ApiOperation({ summary: 'Eliminar tema teórico' })
   @ApiNoContentResponse()
   @ApiNotFoundResponse()
-  @ApiForbiddenResponse()
+  @ApiForbiddenResponse({ description: 'Solo administradores' })
   remove(@Param('id', ParseUUIDPipe) id: string): Promise<void> {
     return this.curriculumService.removeTopic(id);
   }

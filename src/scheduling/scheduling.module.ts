@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { CurriculumModule } from '../curriculum/curriculum.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { UsersModule } from '../users/users.module';
 import { Classroom } from './entity/classroom.entity';
@@ -20,6 +21,7 @@ import { VehiclesService } from './vehicles.service';
     TypeOrmModule.forFeature([Vehicle, Classroom, Schedule]),
     UsersModule,
     NotificationsModule,
+    CurriculumModule,
   ],
   controllers: [SchedulesController, VehiclesController],
   providers: [

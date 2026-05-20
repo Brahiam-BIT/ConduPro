@@ -20,6 +20,34 @@ class ScheduleUserSummaryDto {
   @Expose()
   @ApiProperty()
   email!: string;
+
+  @Expose()
+  @ApiPropertyOptional({ nullable: true })
+  phone!: string | null;
+}
+
+class ScheduleTheoryTopicSummaryDto {
+  @Expose()
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @Expose()
+  @ApiProperty()
+  title!: string;
+}
+
+class ScheduleLicenseCategorySummaryDto {
+  @Expose()
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @Expose()
+  @ApiProperty()
+  code!: string;
+
+  @Expose()
+  @ApiProperty()
+  name!: string;
 }
 
 class ScheduleVehicleSummaryDto {
@@ -76,6 +104,14 @@ export class ScheduleResponseDto {
   classroomId!: string | null;
 
   @Expose()
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  licenseCategoryId!: string | null;
+
+  @Expose()
+  @ApiPropertyOptional({ format: 'uuid', nullable: true })
+  theoryTopicId!: string | null;
+
+  @Expose()
   @ApiProperty()
   startTime!: Date;
 
@@ -118,4 +154,14 @@ export class ScheduleResponseDto {
   @Type(() => ScheduleClassroomSummaryDto)
   @ApiPropertyOptional({ type: ScheduleClassroomSummaryDto })
   classroom?: ScheduleClassroomSummaryDto | null;
+
+  @Expose()
+  @Type(() => ScheduleTheoryTopicSummaryDto)
+  @ApiPropertyOptional({ type: ScheduleTheoryTopicSummaryDto, nullable: true })
+  theoryTopic?: ScheduleTheoryTopicSummaryDto | null;
+
+  @Expose()
+  @Type(() => ScheduleLicenseCategorySummaryDto)
+  @ApiPropertyOptional({ type: ScheduleLicenseCategorySummaryDto, nullable: true })
+  licenseCategory?: ScheduleLicenseCategorySummaryDto | null;
 }
