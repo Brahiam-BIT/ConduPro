@@ -12,6 +12,10 @@ import { PaginatedResponseDto } from '../common/dto/paginated-response.dto';
 import { UserRole } from '../common/enums/user-role.enum';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserAvailabilitySlotDto } from './dto/set-availability.dto';
+import { AvailabilityClassType } from './enums/availability-class-type.enum';
+import { AvailabilityRecurrence } from './enums/availability-recurrence.enum';
+import { InstructorAvailabilitySlot } from './entity/instructor-availability-slot.entity';
+import { InstructorAvailabilityRepository } from './repository/instructor-availability.repository';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserListQueryDto } from './dto/user-list-query.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -20,7 +24,10 @@ import { UsersRepository } from './repository/users.repository';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly usersRepository: UsersRepository) {}
+  constructor(
+    private readonly usersRepository: UsersRepository,
+    private readonly availabilityRepository: InstructorAvailabilityRepository,
+  ) {}
 
   async findByIdOrFail(id: string): Promise<User> {
     const user = await this.usersRepository.findById(id);
@@ -122,7 +129,8 @@ export class UsersService {
     if (user.role !== UserRole.INSTRUCTOR) {
       throw new ForbiddenException('Solo instructores tienen disponibilidad semanal');
     }
-    return [];
+    const rows = await this.availabilityRepository.findByInstructor(userId);
+    return rows.map((row) => this.toAvailabilityDto(row));
   }
 
   async setAvailability(
@@ -133,7 +141,32 @@ export class UsersService {
     if (user.role !== UserRole.INSTRUCTOR) {
       throw new ForbiddenException('Solo instructores tienen disponibilidad semanal');
     }
-    return slots;
+
+    for (const slot of slots) {
+      if (slot.dayOfWeek < 1 || slot.dayOfWeek > 5) {
+        throw new ForbiddenException('Solo se permiten días laborales (lunes a viernes)');
+      }
+      if (slot.classType === AvailabilityClassType.THEORY && !slot.theoryTopicId) {
+        throw new ForbiddenException('Las franjas teóricas requieren un tema del temario');
+      }
+    }
+
+    const saved = await this.availabilityRepository.replaceForInstructor(userId, slots);
+    return saved.map((row) => this.toAvailabilityDto(row));
+  }
+
+  private toAvailabilityDto(row: InstructorAvailabilitySlot): UserAvailabilitySlotDto {
+    const dto = new UserAvailabilitySlotDto();
+    dto.dayOfWeek = row.dayOfWeek;
+    dto.slotDate = row.slotDate ?? null;
+    dto.hour = row.hour;
+    dto.available = row.available;
+    dto.classType = row.classType;
+    dto.theoryTopicId = row.theoryTopicId;
+    dto.licenseCategoryId = row.licenseCategoryId;
+    dto.recurrence = row.recurrence;
+    dto.monthWeek = row.monthWeek;
+    return dto;
   }
 
   toResponseDto(user: User): UserResponseDto {

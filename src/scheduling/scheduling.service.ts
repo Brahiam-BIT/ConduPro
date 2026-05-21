@@ -165,6 +165,71 @@ export class SchedulingService {
     return this.buildAndPersistSchedule(dto, ScheduleStatus.CONFIRMED);
   }
 
+  /** Inscripción grupal en clase teórica (varios estudiantes, mismo instructor/hora/tema). */
+  async createTheoryClassEnrollment(dto: CreateScheduleDto): Promise<Schedule> {
+    this.validationService.validateTypeResources(dto);
+
+    const student = await this.usersService.findByIdOrFail(dto.studentId);
+    const instructor = await this.usersService.findByIdOrFail(dto.instructorId);
+    this.validationService.validateParticipants(student, instructor);
+
+    const startTime = new Date(dto.startTime);
+    const endTime = this.validationService.resolveEndTime(startTime, dto.endTime);
+    this.validationService.validateScheduleWindow(startTime, endTime);
+
+    const classroomId = dto.classroomId ?? null;
+    if (!classroomId) {
+      throw new BadRequestException('classroomId es requerido para clases teóricas');
+    }
+
+    const classroom = await this.classroomRepository.findById(classroomId);
+    if (!classroom || !classroom.isAvailable) {
+      throw new BadRequestException('Aula no disponible');
+    }
+
+    if (!dto.theoryTopicId || !dto.licenseCategoryId) {
+      throw new BadRequestException('theoryTopicId y licenseCategoryId son requeridos');
+    }
+
+    const sessionSchedules = await this.scheduleRepository.findByTheorySession({
+      instructorId: dto.instructorId,
+      theoryTopicId: dto.theoryTopicId,
+      startTime,
+    });
+
+    const conflicts = await this.scheduleRepository.findTheoryJoinConflicts({
+      startTime,
+      endTime,
+      instructorId: dto.instructorId,
+      studentId: dto.studentId,
+      theoryTopicId: dto.theoryTopicId,
+      checkClassroomId: sessionSchedules.length > 0 ? null : classroomId,
+    });
+
+    if (conflicts.length > 0) {
+      throw new ConflictException('Conflicto de horario con otra clase existente');
+    }
+
+    const schedule = this.scheduleRepository.create({
+      type: ScheduleType.THEORY,
+      studentId: dto.studentId,
+      instructorId: dto.instructorId,
+      startTime,
+      endTime,
+      vehicleId: null,
+      classroomId,
+      licenseCategoryId: dto.licenseCategoryId,
+      theoryTopicId: dto.theoryTopicId,
+      status: ScheduleStatus.CONFIRMED,
+      notes: dto.notes ?? null,
+    });
+
+    const saved = await this.scheduleRepository.save(schedule);
+    const full = await this.getScheduleOrFail(saved.id);
+    await this.safeNotify(() => this.notificationsService.notifyScheduleConfirmed(full));
+    return full;
+  }
+
   async isSlotAvailable(params: {
     type: ScheduleType;
     studentId: string;

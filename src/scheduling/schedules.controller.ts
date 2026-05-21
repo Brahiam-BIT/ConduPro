@@ -30,6 +30,14 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
+import { TheoryClassOffersService } from '../assignment/theory-class-offers.service';
+import { PracticeClassOffersService } from '../assignment/practice-class-offers.service';
+import { JoinTheoryClassDto } from '../assignment/dto/join-theory-class.dto';
+import { JoinPracticeClassDto } from '../assignment/dto/join-practice-class.dto';
+import { TheoryClassOfferResponseDto } from '../assignment/dto/theory-class-offer-response.dto';
+import { TheoryClassOffersQueryDto } from '../assignment/dto/theory-class-offers-query.dto';
+import { PracticeClassOfferResponseDto } from '../assignment/dto/practice-class-offer-response.dto';
+import { PracticeClassOffersQueryDto } from '../assignment/dto/practice-class-offers-query.dto';
 import { AvailabilityQueryDto } from './dto/availability-query.dto';
 import { AvailabilityResponseDto } from './dto/availability-response.dto';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
@@ -42,7 +50,11 @@ import { SchedulingService } from './scheduling.service';
 @ApiBearerAuth('access-token')
 @Controller({ path: 'schedules', version: '1' })
 export class SchedulesController {
-  constructor(private readonly schedulingService: SchedulingService) {}
+  constructor(
+    private readonly schedulingService: SchedulingService,
+    private readonly theoryClassOffersService: TheoryClassOffersService,
+    private readonly practiceClassOffersService: PracticeClassOffersService,
+  ) {}
 
   @Get('availability')
   @ApiStandardResponses()
@@ -72,17 +84,58 @@ export class SchedulesController {
     return this.schedulingService.findAll(query, user);
   }
 
-  @Get(':id')
+  @Get('theory-offers')
+  @Roles(UserRole.STUDENT)
   @ApiStandardResponses()
-  @ApiOperation({ summary: 'Obtener una clase por ID' })
-  @ApiOkResponse({ type: ScheduleResponseDto })
-  @ApiNotFoundResponse({ description: 'Clase no encontrada' })
-  @ApiForbiddenResponse({ description: 'Sin permisos para ver la clase' })
-  findOne(
-    @Param('id', ParseUUIDPipe) id: string,
+  @ApiOperation({
+    summary: 'Clases teóricas disponibles según matrícula y disponibilidad del instructor',
+  })
+  @ApiOkResponse({ type: TheoryClassOfferResponseDto, isArray: true })
+  listTheoryOffers(
+    @Query() query: TheoryClassOffersQueryDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<TheoryClassOfferResponseDto[]> {
+    return this.theoryClassOffersService.listOffers(user.sub, query);
+  }
+
+  @Post('theory-offers/join')
+  @Roles(UserRole.STUDENT)
+  @ApiStandardResponses()
+  @ApiOperation({ summary: 'Inscribirse en una clase teórica con cupo' })
+  @ApiCreatedResponse({ type: ScheduleResponseDto })
+  @ApiConflictResponse({ description: 'Sin cupo o conflicto de horario' })
+  joinTheoryClass(
+    @Body() dto: JoinTheoryClassDto,
     @CurrentUser() user: JwtPayload,
   ): Promise<ScheduleResponseDto> {
-    return this.schedulingService.findOne(id, user);
+    return this.theoryClassOffersService.joinClass(user.sub, dto);
+  }
+
+  @Get('practice-offers')
+  @Roles(UserRole.STUDENT)
+  @ApiStandardResponses()
+  @ApiOperation({
+    summary: 'Clases prácticas disponibles según matrícula y disponibilidad del instructor',
+  })
+  @ApiOkResponse({ type: PracticeClassOfferResponseDto, isArray: true })
+  listPracticeOffers(
+    @Query() query: PracticeClassOffersQueryDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PracticeClassOfferResponseDto[]> {
+    return this.practiceClassOffersService.listOffers(user.sub, query);
+  }
+
+  @Post('practice-offers/join')
+  @Roles(UserRole.STUDENT)
+  @ApiStandardResponses()
+  @ApiOperation({ summary: 'Reservar una clase práctica en un horario del instructor' })
+  @ApiCreatedResponse({ type: ScheduleResponseDto })
+  @ApiConflictResponse({ description: 'Horario ocupado o sin vehículo' })
+  joinPracticeClass(
+    @Body() dto: JoinPracticeClassDto,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ScheduleResponseDto> {
+    return this.practiceClassOffersService.joinClass(user.sub, dto);
   }
 
   @Post()
@@ -127,5 +180,18 @@ export class SchedulesController {
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
     return this.schedulingService.cancel(id, user);
+  }
+
+  @Get(':id')
+  @ApiStandardResponses()
+  @ApiOperation({ summary: 'Obtener una clase por ID' })
+  @ApiOkResponse({ type: ScheduleResponseDto })
+  @ApiNotFoundResponse({ description: 'Clase no encontrada' })
+  @ApiForbiddenResponse({ description: 'Sin permisos para ver la clase' })
+  findOne(
+    @Param('id', ParseUUIDPipe) id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<ScheduleResponseDto> {
+    return this.schedulingService.findOne(id, user);
   }
 }

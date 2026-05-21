@@ -3,8 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { ScheduleStatus } from '../enums/schedule-status.enum';
+import { ScheduleType } from '../enums/schedule-type.enum';
 import { Schedule } from '../entity/schedule.entity';
 import { endOfDay, startOfDay } from '../utils/scheduling-time.util';
+
+export interface TheorySessionKey {
+  instructorId: string;
+  theoryTopicId: string;
+  startTime: Date;
+}
 
 export interface ScheduleConflictParams {
   startTime: Date;
@@ -158,6 +165,77 @@ export class ScheduleRepository {
 
   async updateStatus(id: string, status: ScheduleStatus): Promise<void> {
     await this.repository.update(id, { status });
+  }
+
+  async findByTheorySession(key: TheorySessionKey): Promise<Schedule[]> {
+    return this.repository
+      .createQueryBuilder('schedule')
+      .leftJoinAndSelect('schedule.student', 'student')
+      .leftJoinAndSelect('schedule.classroom', 'classroom')
+      .leftJoinAndSelect('schedule.theoryTopic', 'theoryTopic')
+      .leftJoinAndSelect('schedule.licenseCategory', 'licenseCategory')
+      .leftJoinAndSelect('schedule.instructor', 'instructor')
+      .where('schedule.deleted_at IS NULL')
+      .andWhere('schedule.status != :cancelled', { cancelled: ScheduleStatus.CANCELLED })
+      .andWhere('schedule.type = :theory', { theory: ScheduleType.THEORY })
+      .andWhere('schedule.instructor_id = :instructorId', { instructorId: key.instructorId })
+      .andWhere('schedule.theory_topic_id = :theoryTopicId', { theoryTopicId: key.theoryTopicId })
+      .andWhere('schedule.start_time = :startTime', { startTime: key.startTime })
+      .orderBy('schedule.createdAt', 'ASC')
+      .getMany();
+  }
+
+  async findTheoryJoinConflicts(params: {
+    startTime: Date;
+    endTime: Date;
+    instructorId: string;
+    studentId: string;
+    theoryTopicId: string;
+    checkClassroomId?: string | null;
+  }): Promise<Schedule[]> {
+    const conditions = [
+      'schedule.student_id = :studentId',
+      '(schedule.instructor_id = :instructorId AND schedule.type = :practice)',
+      `(schedule.instructor_id = :instructorId AND schedule.type = :theory
+        AND schedule.theory_topic_id != :theoryTopicId)`,
+    ];
+
+    if (params.checkClassroomId) {
+      conditions.push('schedule.classroom_id = :checkClassroomId');
+    }
+
+    return this.repository
+      .createQueryBuilder('schedule')
+      .where('schedule.deleted_at IS NULL')
+      .andWhere('schedule.status != :cancelled', { cancelled: ScheduleStatus.CANCELLED })
+      .andWhere('schedule.start_time < :endTime', { endTime: params.endTime })
+      .andWhere('schedule.end_time > :startTime', { startTime: params.startTime })
+      .andWhere(`(${conditions.join(' OR ')})`, {
+        studentId: params.studentId,
+        instructorId: params.instructorId,
+        practice: ScheduleType.PRACTICE,
+        theory: ScheduleType.THEORY,
+        theoryTopicId: params.theoryTopicId,
+        checkClassroomId: params.checkClassroomId,
+      })
+      .getMany();
+  }
+
+  async hasInstructorPracticeOverlap(
+    instructorId: string,
+    startTime: Date,
+    endTime: Date,
+  ): Promise<boolean> {
+    const count = await this.repository
+      .createQueryBuilder('schedule')
+      .where('schedule.deleted_at IS NULL')
+      .andWhere('schedule.status != :cancelled', { cancelled: ScheduleStatus.CANCELLED })
+      .andWhere('schedule.instructor_id = :instructorId', { instructorId })
+      .andWhere('schedule.type = :practice', { practice: ScheduleType.PRACTICE })
+      .andWhere('schedule.start_time < :endTime', { endTime })
+      .andWhere('schedule.end_time > :startTime', { startTime })
+      .getCount();
+    return count > 0;
   }
 
   async isResourceBusy(

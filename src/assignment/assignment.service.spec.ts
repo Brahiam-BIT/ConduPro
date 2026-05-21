@@ -6,6 +6,8 @@ import { ScheduleType } from '../scheduling/enums/schedule-type.enum';
 import { ClassroomRepository } from '../scheduling/repository/classroom.repository';
 import { VehicleRepository } from '../scheduling/repository/vehicle.repository';
 import { SchedulingService } from '../scheduling/scheduling.service';
+import { StudentEnrollmentService } from '../curriculum/student-enrollment.service';
+import { InstructorAvailabilityRepository } from '../users/repository/instructor-availability.repository';
 import { UsersService } from '../users/users.service';
 import { AssignmentService } from './assignment.service';
 
@@ -31,6 +33,14 @@ describe('AssignmentService', () => {
     findAvailable: jest.fn(),
   };
 
+  const enrollmentService = {
+    resolvePrimaryActiveEnrollment: jest.fn().mockResolvedValue(null),
+  };
+
+  const availabilityRepository = {
+    findByInstructor: jest.fn().mockResolvedValue([]),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -41,6 +51,8 @@ describe('AssignmentService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: VehicleRepository, useValue: vehicleRepository },
         { provide: ClassroomRepository, useValue: classroomRepository },
+        { provide: StudentEnrollmentService, useValue: enrollmentService },
+        { provide: InstructorAvailabilityRepository, useValue: availabilityRepository },
       ],
     }).compile();
 

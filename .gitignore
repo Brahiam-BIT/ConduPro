@@ -34,3 +34,6 @@ logs/
 # Docker volumes
 .pgdata/
 .pgadmin/
+
+# Uploaded theory materials (local disk)
+uploads/

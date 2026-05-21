@@ -1,6 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { UserRole } from '../common/enums/user-role.enum';
+import { AvailabilityClassType } from '../users/enums/availability-class-type.enum';
+import { InstructorAvailabilitySlot } from '../users/entity/instructor-availability-slot.entity';
+import { InstructorAvailabilityRepository } from '../users/repository/instructor-availability.repository';
 import { UsersService } from '../users/users.service';
 import { CreateScheduleDto } from '../scheduling/dto/create-schedule.dto';
 import { ScheduleResponseDto } from '../scheduling/dto/schedule-response.dto';
@@ -13,6 +16,7 @@ import {
   addMs,
   datesInRange,
   generateBusinessSlotsForDate,
+  parseDateOnly,
   startOfDay,
 } from '../scheduling/utils/scheduling-time.util';
 import { StudentEnrollmentService } from '../curriculum/student-enrollment.service';
@@ -26,6 +30,7 @@ export class AssignmentService {
     private readonly vehicleRepository: VehicleRepository,
     private readonly classroomRepository: ClassroomRepository,
     private readonly enrollmentService: StudentEnrollmentService,
+    private readonly availabilityRepository: InstructorAvailabilityRepository,
   ) {}
 
   async autoAssign(dto: AutoAssignDto): Promise<ScheduleResponseDto> {
@@ -44,9 +49,15 @@ export class AssignmentService {
       throw new NotFoundException('No hay instructores disponibles');
     }
 
-    const searchDates = dto.preferredDate
-      ? [startOfDay(dto.preferredDate)]
-      : datesInRange(addMs(new Date(), 24 * 60 * 60 * 1000), AUTO_ASSIGN_SEARCH_DAYS);
+    const searchDates = this.buildSearchDates(dto.preferredDate);
+
+    const availabilityByInstructor = new Map<string, InstructorAvailabilitySlot[]>();
+    for (const instructor of instructors) {
+      availabilityByInstructor.set(
+        instructor.id,
+        await this.availabilityRepository.findByInstructor(instructor.id),
+      );
+    }
 
     const vehicles =
       dto.type === ScheduleType.PRACTICE ? await this.vehicleRepository.findAvailable() : [];
@@ -65,7 +76,19 @@ export class AssignmentService {
       const slots = generateBusinessSlotsForDate(date);
 
       for (const instructor of instructors) {
+        const instructorSlots = availabilityByInstructor.get(instructor.id) ?? [];
+
         for (const slot of slots) {
+          const matchingAvailability = this.matchInstructorAvailability(
+            instructorSlots,
+            date,
+            slot.startTime.getHours(),
+            dto.type,
+          );
+          if (instructorSlots.length > 0 && !matchingAvailability) {
+            continue;
+          }
+
           const resources =
             dto.type === ScheduleType.PRACTICE
               ? vehicles.map((v) => ({ vehicleId: v.id, classroomId: null as string | null }))
@@ -97,7 +120,9 @@ export class AssignmentService {
               endTime: slot.endTime,
               vehicleId: resource.vehicleId ?? undefined,
               classroomId: resource.classroomId ?? undefined,
-              licenseCategoryId: licenseCategoryId ?? undefined,
+              licenseCategoryId:
+                matchingAvailability?.licenseCategoryId ?? licenseCategoryId ?? undefined,
+              theoryTopicId: matchingAvailability?.theoryTopicId ?? undefined,
             };
 
             const schedule = await this.schedulingService.createConfirmed(createDto);
@@ -107,8 +132,69 @@ export class AssignmentService {
       }
     }
 
-    throw new NotFoundException(
-      'No se encontró disponibilidad para asignar la clase en los próximos días',
+    const hasAnyAvailabilityGrid = [...availabilityByInstructor.values()].some(
+      (rows) => rows.length > 0,
     );
+    if (hasAnyAvailabilityGrid) {
+      throw new NotFoundException(
+        'Ningún instructor tiene franjas libres para este tipo de clase en las fechas buscadas. Revisa la disponibilidad semanal o elige otra fecha.',
+      );
+    }
+
+    throw new NotFoundException(
+      'No se encontró un hueco libre (instructores, vehículos/aulas o agenda ocupada). Prueba otra fecha o pide al instructor que configure su disponibilidad.',
+    );
+  }
+
+  private buildSearchDates(preferredDate?: Date): Date[] {
+    const fallbackStart = addMs(new Date(), 24 * 60 * 60 * 1000);
+    const candidates = preferredDate
+      ? [
+          startOfDay(preferredDate),
+          ...datesInRange(addMs(startOfDay(preferredDate), 24 * 60 * 60 * 1000), AUTO_ASSIGN_SEARCH_DAYS),
+        ]
+      : datesInRange(fallbackStart, AUTO_ASSIGN_SEARCH_DAYS);
+
+    const seen = new Set<number>();
+    return candidates.filter((day) => {
+      const key = day.getTime();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+  }
+
+  /**
+   * Si el instructor no tiene grilla guardada, devuelve null (cualquier franja laboral vale).
+   * Si tiene grilla, devuelve la franja que coincide o undefined si no ofrece esa hora/tipo.
+   */
+  private matchInstructorAvailability(
+    rows: InstructorAvailabilitySlot[],
+    date: Date,
+    hour: number,
+    type: ScheduleType,
+  ): InstructorAvailabilitySlot | null | undefined {
+    if (rows.length === 0) {
+      return null;
+    }
+
+    const classType =
+      type === ScheduleType.THEORY
+        ? AvailabilityClassType.THEORY
+        : AvailabilityClassType.PRACTICE;
+
+    const dayStart = startOfDay(date).getTime();
+    return rows.find((row) => {
+      if (!row.available || row.hour !== hour || row.classType !== classType) {
+        return false;
+      }
+      if (row.slotDate) {
+        const slotDay = startOfDay(
+          typeof row.slotDate === 'string' ? parseDateOnly(row.slotDate) : row.slotDate,
+        );
+        return slotDay.getTime() === dayStart;
+      }
+      return row.dayOfWeek === date.getDay();
+    });
   }
 }

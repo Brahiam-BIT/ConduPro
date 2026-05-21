@@ -1,8 +1,14 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { TheoryClassOffersService } from '../assignment/theory-class-offers.service';
+import { PracticeClassOffersService } from '../assignment/practice-class-offers.service';
 import { CurriculumModule } from '../curriculum/curriculum.module';
+import { StudentLicenseEnrollment } from '../curriculum/entity/student-license-enrollment.entity';
+import { StudentTheoryTopicProgress } from '../curriculum/entity/student-theory-topic-progress.entity';
+import { TheoryTopic } from '../curriculum/entity/theory-topic.entity';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { InstructorAvailabilitySlot } from '../users/entity/instructor-availability-slot.entity';
 import { UsersModule } from '../users/users.module';
 import { Classroom } from './entity/classroom.entity';
 import { Schedule } from './entity/schedule.entity';
@@ -18,7 +24,15 @@ import { VehiclesService } from './vehicles.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Vehicle, Classroom, Schedule]),
+    TypeOrmModule.forFeature([
+      Vehicle,
+      Classroom,
+      Schedule,
+      InstructorAvailabilitySlot,
+      StudentLicenseEnrollment,
+      StudentTheoryTopicProgress,
+      TheoryTopic,
+    ]),
     UsersModule,
     NotificationsModule,
     CurriculumModule,
@@ -31,6 +45,8 @@ import { VehiclesService } from './vehicles.service';
     ScheduleRepository,
     VehicleRepository,
     ClassroomRepository,
+    TheoryClassOffersService,
+    PracticeClassOffersService,
   ],
   exports: [
     SchedulingService,
@@ -39,6 +55,8 @@ import { VehiclesService } from './vehicles.service';
     ScheduleRepository,
     VehicleRepository,
     ClassroomRepository,
+    TheoryClassOffersService,
+    PracticeClassOffersService,
   ],
 })
 export class SchedulingModule {}
