@@ -1,0 +1,3 @@
+aws_region       = "us-east-1"
+ssh_public_key   = "ssh-ed25519 AAAA... tu-clave-publica"
+allowed_ssh_cidr = "0.0.0.0/0" # Restringe a tu IP (/32) si no usas deploy desde GitHub Actions aún
