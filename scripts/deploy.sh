@@ -17,11 +17,14 @@ git fetch origin
 git checkout "$BRANCH"
 git reset --hard "origin/${BRANCH}"
 
-echo "==> Instalando dependencias..."
-npm ci --omit=dev
+echo "==> Instalando dependencias (incluye dev para compilar)..."
+npm ci
 
 echo "==> Compilando..."
 npm run build
+
+echo "==> Limpiando dependencias de desarrollo..."
+npm prune --omit=dev
 
 echo "==> Asegurando PostgreSQL..."
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d postgres
