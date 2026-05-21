@@ -147,7 +147,7 @@ curl http://<PUBLIC_IP>/api/docs   # Swagger
 | PR hacia `main`     | `.github/workflows/ci.yml`     | lint, tests, build   |
 | Push/merge en `main`| `.github/workflows/deploy.yml` | SSH + `scripts/deploy.sh` |
 
-El script de deploy hace: `git pull` → `npm ci --omit=dev` → `build` → migraciones → `pm2 restart`.
+El workflow de deploy **compila en GitHub Actions**, sube un `deploy.tar.gz` a la EC2 y ejecuta `scripts/deploy-remote.sh` (solo `npm ci --omit=dev`, migraciones y PM2). El script `scripts/deploy.sh` queda para despliegue manual vía `git pull` en el servidor.
 
 ## 8. HTTPS (cuando tengas dominio)
 

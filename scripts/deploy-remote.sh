@@ -1,31 +1,17 @@
 #!/usr/bin/env bash
-# Despliegue manual vía git (compila en el servidor). CI usa deploy-remote.sh + bundle en GHA.
+# Ejecutado en la EC2 tras subir el bundle compilado desde GitHub Actions.
+# No compila ni hace git pull: solo dependencias de producción, migraciones y PM2.
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/condupro-api}"
-BRANCH="${DEPLOY_BRANCH:-main}"
 PM2_APP_NAME="${PM2_APP_NAME:-condupro-api}"
 
 cd "$APP_DIR"
 
-if [ ! -d .git ]; then
-  echo "ERROR: $APP_DIR no es un repositorio git. Ejecuta el bootstrap manual (ver infra/README.md)."
+if [ ! -f dist/main.js ]; then
+  echo "ERROR: dist/main.js no existe. El bundle de deploy no se extrajo bien."
   exit 1
 fi
-
-echo "==> Actualizando código (${BRANCH})..."
-git fetch origin
-git checkout "$BRANCH"
-git reset --hard "origin/${BRANCH}"
-
-echo "==> Instalando dependencias (incluye dev para compilar)..."
-npm ci
-
-echo "==> Compilando..."
-npm run build
-
-echo "==> Limpiando dependencias de desarrollo..."
-npm prune --omit=dev
 
 echo "==> Asegurando PostgreSQL..."
 docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d postgres
@@ -33,6 +19,9 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d postgres
 sudo mkdir -p /var/log/condupro-api
 sudo chown "$(whoami):$(whoami)" /var/log/condupro-api
 mkdir -p uploads/theory-materials
+
+echo "==> Instalando dependencias de producción..."
+npm ci --omit=dev
 
 echo "==> Ejecutando migraciones..."
 npm run migration:run:prod
