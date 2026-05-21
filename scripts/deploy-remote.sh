@@ -24,7 +24,8 @@ if [ ! -f dist/main.js ]; then
 fi
 
 echo "==> Asegurando PostgreSQL..."
-COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+# Mismo compose del bootstrap (sin prod override de puertos, evita conflictos al recrear).
+COMPOSE="docker compose -f docker-compose.yml"
 DB_USER="${DATABASE_USER:-condupro}"
 DB_NAME="${DATABASE_NAME:-condupro}"
 DB_PORT="${DATABASE_PORT:-5432}"
@@ -39,7 +40,8 @@ host_port_open() {
 }
 
 container_ready() {
-  $COMPOSE exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1
+  docker ps --filter "name=condupro-postgres" --filter "status=running" -q | grep -q . \
+    && $COMPOSE exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1
 }
 
 postgres_accessible() {
@@ -50,7 +52,7 @@ wait_for_postgres() {
   local attempt
   for attempt in $(seq 1 30); do
     if postgres_accessible; then
-      echo "PostgreSQL listo (contenedor + puerto ${DB_HOST}:${DB_PORT})."
+      echo "PostgreSQL listo (${DB_HOST}:${DB_PORT})."
       return 0
     fi
     sleep 2
@@ -58,22 +60,27 @@ wait_for_postgres() {
   return 1
 }
 
-$COMPOSE up -d --no-recreate --wait postgres 2>/dev/null || $COMPOSE up -d --wait postgres
+free_port_5432() {
+  echo "Liberando puerto ${DB_PORT}..."
+  $COMPOSE stop postgres 2>/dev/null || true
+  docker rm -f condupro-postgres 2>/dev/null || true
+  local cid
+  for cid in $(docker ps -q --filter "publish=${DB_PORT}" 2>/dev/null); do
+    docker rm -f "$cid" 2>/dev/null || true
+  done
+  sleep 3
+}
 
 echo "==> Comprobando conexión a PostgreSQL..."
-if ! wait_for_postgres; then
-  if container_ready && ! host_port_open; then
-    echo "PostgreSQL corre en Docker pero el puerto no está publicado en el host. Recreando contenedor..."
-    docker stop condupro-postgres 2>/dev/null || true
-    docker rm condupro-postgres 2>/dev/null || true
-    $COMPOSE up -d --wait postgres
-    wait_for_postgres || true
-  fi
+if ! postgres_accessible; then
+  free_port_5432
+  $COMPOSE up -d --wait postgres
 fi
 
-if ! postgres_accessible; then
+if ! wait_for_postgres; then
   echo "ERROR: no hay conexión a ${DB_HOST}:${DB_PORT} desde el host."
-  echo "Puertos del contenedor:"
+  echo "¿Qué usa el puerto ${DB_PORT}?"
+  sudo ss -tlnp | grep ":${DB_PORT} " || true
   docker port condupro-postgres 2>/dev/null || true
   $COMPOSE ps
   $COMPOSE logs postgres --tail 40
