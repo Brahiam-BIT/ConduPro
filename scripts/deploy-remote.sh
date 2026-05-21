@@ -8,6 +8,16 @@ PM2_APP_NAME="${PM2_APP_NAME:-condupro-api}"
 
 cd "$APP_DIR"
 
+if [ -f .env ]; then
+  while IFS= read -r line; do
+    case "$line" in
+      DATABASE_*)
+        export "$line"
+        ;;
+    esac
+  done < <(grep -E '^DATABASE_' .env | grep -v '^#')
+fi
+
 if [ ! -f dist/main.js ]; then
   echo "ERROR: dist/main.js no existe. El bundle de deploy no se extrajo bien."
   exit 1
@@ -15,10 +25,23 @@ fi
 
 echo "==> Asegurando PostgreSQL..."
 COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
-if docker ps --filter "name=condupro-postgres" --filter "status=running" -q | grep -q .; then
-  echo "PostgreSQL ya está en ejecución (no se recrea el contenedor)."
+# --no-recreate evita choque de puerto 5432; --wait espera el healthcheck antes de migrar.
+$COMPOSE up -d --no-recreate --wait postgres 2>/dev/null || $COMPOSE up -d --wait postgres
+
+echo "==> Comprobando conexión a PostgreSQL..."
+DB_USER="${DATABASE_USER:-condupro}"
+DB_NAME="${DATABASE_NAME:-condupro}"
+for _ in $(seq 1 30); do
+  if $COMPOSE exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
+    echo "PostgreSQL listo."
+    break
+  fi
+  sleep 2
 else
-  $COMPOSE up -d postgres
+  echo "ERROR: PostgreSQL no acepta conexiones en 127.0.0.1:5432"
+  $COMPOSE ps
+  $COMPOSE logs postgres --tail 40
+  exit 1
 fi
 
 sudo mkdir -p /var/log/condupro-api
