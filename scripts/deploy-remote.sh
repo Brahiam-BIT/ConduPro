@@ -14,7 +14,12 @@ if [ ! -f dist/main.js ]; then
 fi
 
 echo "==> Asegurando PostgreSQL..."
-docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d postgres
+COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml"
+if docker ps --filter "name=condupro-postgres" --filter "status=running" -q | grep -q .; then
+  echo "PostgreSQL ya está en ejecución (no se recrea el contenedor)."
+else
+  $COMPOSE up -d postgres
+fi
 
 sudo mkdir -p /var/log/condupro-api
 sudo chown "$(whoami):$(whoami)" /var/log/condupro-api
