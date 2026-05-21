@@ -31,13 +31,16 @@ $COMPOSE up -d --no-recreate --wait postgres 2>/dev/null || $COMPOSE up -d --wai
 echo "==> Comprobando conexión a PostgreSQL..."
 DB_USER="${DATABASE_USER:-condupro}"
 DB_NAME="${DATABASE_NAME:-condupro}"
+postgres_ready=false
 for _ in $(seq 1 30); do
   if $COMPOSE exec -T postgres pg_isready -U "$DB_USER" -d "$DB_NAME" >/dev/null 2>&1; then
     echo "PostgreSQL listo."
+    postgres_ready=true
     break
   fi
   sleep 2
-else
+done
+if [ "$postgres_ready" != true ]; then
   echo "ERROR: PostgreSQL no acepta conexiones en 127.0.0.1:5432"
   $COMPOSE ps
   $COMPOSE logs postgres --tail 40
