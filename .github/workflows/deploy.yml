@@ -36,6 +36,11 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
+            set -euo pipefail
             export APP_DIR=/opt/condupro-api
             export DEPLOY_BRANCH=main
-            bash /opt/condupro-api/scripts/deploy.sh
+            cd "$APP_DIR"
+            git fetch origin
+            git checkout "$DEPLOY_BRANCH"
+            git reset --hard "origin/${DEPLOY_BRANCH}"
+            bash scripts/deploy.sh
