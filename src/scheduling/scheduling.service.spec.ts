@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { UserRole } from '../common/enums/user-role.enum';
 import type { JwtPayload } from '../common/interfaces/jwt-payload.interface';
+import { StudentEnrollmentService } from '../curriculum/student-enrollment.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UsersService } from '../users/users.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
@@ -14,6 +15,8 @@ import { ScheduleRepository } from './repository/schedule.repository';
 import { VehicleRepository } from './repository/vehicle.repository';
 import { SchedulingService } from './scheduling.service';
 import { SchedulingValidationService } from './service/scheduling-validation.service';
+import { isWorkingDay } from './utils/scheduling-time.util';
+import { MIN_ADVANCE_MS } from './constants/scheduling.constants';
 
 describe('SchedulingService', () => {
   let service: SchedulingService;
@@ -55,10 +58,19 @@ describe('SchedulingService', () => {
     notifyScheduleCancelled: jest.fn().mockResolvedValue(undefined),
   };
 
+  const enrollmentService = {
+    handleScheduleStatusChange: jest.fn().mockResolvedValue(undefined),
+  };
+
   const futureStart = (): Date => {
     const date = new Date();
     date.setDate(date.getDate() + 3);
     date.setHours(10, 0, 0, 0);
+    const now = Date.now();
+    while (!isWorkingDay(date) || date.getTime() - now < MIN_ADVANCE_MS) {
+      date.setDate(date.getDate() + 1);
+      date.setHours(10, 0, 0, 0);
+    }
     return date;
   };
 
@@ -118,6 +130,7 @@ describe('SchedulingService', () => {
         { provide: ClassroomRepository, useValue: classroomRepository },
         { provide: UsersService, useValue: usersService },
         { provide: NotificationsService, useValue: notificationsService },
+        { provide: StudentEnrollmentService, useValue: enrollmentService },
       ],
     }).compile();
 
