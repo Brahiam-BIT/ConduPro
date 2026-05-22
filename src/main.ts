@@ -19,6 +19,12 @@ async function bootstrap(): Promise<void> {
   const port = configService.get('port', { infer: true });
   const nodeEnv = configService.get('nodeEnv', { infer: true });
 
+  // Detrás de Nginx: usar X-Forwarded-For para req.ip (rate limit por cliente real).
+  if (nodeEnv === 'production') {
+    const httpAdapter = app.getHttpAdapter().getInstance();
+    httpAdapter.set('trust proxy', 1);
+  }
+
   app.use(helmet());
   app.enableCors({
     origin: true,

@@ -21,16 +21,15 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
+import { SkipThrottle } from '@nestjs/throttler';
 
 import { ApiStandardResponses } from '../common/decorators/api-standard-responses.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
 import { UserRole } from '../common/enums/user-role.enum';
 import { CurriculumService } from './curriculum.service';
-import {
-  CreateTheoryTopicDto,
-  UpdateTheoryTopicDto,
-} from './dto/theory-topic-payload.dto';
+import { CreateTheoryTopicDto, UpdateTheoryTopicDto } from './dto/theory-topic-payload.dto';
 import { TheoryTopicResponseDto } from './dto/theory-topic-response.dto';
+import { TheoryTopicsQueryDto } from './dto/theory-topics-query.dto';
 
 @ApiTags('curriculum')
 @ApiBearerAuth('access-token')
@@ -39,14 +38,21 @@ export class TheoryTopicsController {
   constructor(private readonly curriculumService: CurriculumService) {}
 
   @Get()
+  @SkipThrottle()
   @Roles(UserRole.ADMIN, UserRole.INSTRUCTOR, UserRole.STUDENT)
   @ApiStandardResponses()
-  @ApiOperation({ summary: 'Listar temas teóricos por categoría' })
+  @ApiOperation({
+    summary: 'Listar temas teóricos',
+    description:
+      'Sin `licenseCategoryId` devuelve todos los temas (recomendado para el panel). ' +
+      'Con el parámetro, filtra por una categoría.',
+  })
   @ApiOkResponse({ type: TheoryTopicResponseDto, isArray: true })
-  findByCategory(
-    @Query('licenseCategoryId', ParseUUIDPipe) licenseCategoryId: string,
-  ): Promise<TheoryTopicResponseDto[]> {
-    return this.curriculumService.findTopicsByCategory(licenseCategoryId);
+  findMany(@Query() query: TheoryTopicsQueryDto): Promise<TheoryTopicResponseDto[]> {
+    if (query.licenseCategoryId) {
+      return this.curriculumService.findTopicsByCategory(query.licenseCategoryId);
+    }
+    return this.curriculumService.findAllTopics();
   }
 
   @Post()
