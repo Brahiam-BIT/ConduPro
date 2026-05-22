@@ -57,7 +57,7 @@ export default (): AppConfig => ({
     ttlMs: 60_000,
     limit:
       (process.env.NODE_ENV ?? 'development') === 'production'
-        ? parseInt(process.env.THROTTLE_LIMIT ?? '100', 10)
+        ? parseInt(process.env.THROTTLE_LIMIT ?? '500', 10)
         : parseInt(process.env.THROTTLE_LIMIT ?? '1000', 10),
   },
 });

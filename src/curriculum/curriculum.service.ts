@@ -6,10 +6,7 @@ import { LicenseCategory } from './entity/license-category.entity';
 import { TheoryTopic } from './entity/theory-topic.entity';
 import { LicenseCategoryResponseDto } from './dto/license-category-response.dto';
 import { UpdateLicenseCategoryDto } from './dto/update-license-category.dto';
-import {
-  CreateTheoryTopicDto,
-  UpdateTheoryTopicDto,
-} from './dto/theory-topic-payload.dto';
+import { CreateTheoryTopicDto, UpdateTheoryTopicDto } from './dto/theory-topic-payload.dto';
 import { TheoryTopicResponseDto } from './dto/theory-topic-response.dto';
 
 @Injectable()
@@ -56,6 +53,13 @@ export class CurriculumService {
     return this.toCategoryDto(withTopics);
   }
 
+  async findAllTopics(): Promise<TheoryTopicResponseDto[]> {
+    const topics = await this.topicRepo.find({
+      order: { licenseCategoryId: 'ASC', sortOrder: 'ASC', title: 'ASC' },
+    });
+    return topics.map((t) => this.toTopicDto(t));
+  }
+
   async findTopicsByCategory(licenseCategoryId: string): Promise<TheoryTopicResponseDto[]> {
     await this.getCategoryOrFail(licenseCategoryId);
     const topics = await this.topicRepo.find({
@@ -73,8 +77,7 @@ export class CurriculumService {
       description: dto.description?.trim() ?? null,
       sortOrder: dto.sortOrder ?? 0,
       sessionCapacity: dto.sessionCapacity ?? category.defaultTheoryCapacity,
-      estimatedHours:
-        dto.estimatedHours !== undefined ? String(dto.estimatedHours) : null,
+      estimatedHours: dto.estimatedHours !== undefined ? String(dto.estimatedHours) : null,
       isActive: dto.isActive ?? true,
     });
     const saved = await this.topicRepo.save(topic);
@@ -92,8 +95,7 @@ export class CurriculumService {
     if (dto.sortOrder !== undefined) topic.sortOrder = dto.sortOrder;
     if (dto.sessionCapacity !== undefined) topic.sessionCapacity = dto.sessionCapacity;
     if (dto.estimatedHours !== undefined) {
-      topic.estimatedHours =
-        dto.estimatedHours === null ? null : String(dto.estimatedHours);
+      topic.estimatedHours = dto.estimatedHours === null ? null : String(dto.estimatedHours);
     }
     if (dto.isActive !== undefined) topic.isActive = dto.isActive;
     const saved = await this.topicRepo.save(topic);
@@ -152,8 +154,7 @@ export class CurriculumService {
       description: topic.description,
       sortOrder: topic.sortOrder,
       sessionCapacity: topic.sessionCapacity,
-      estimatedHours:
-        topic.estimatedHours !== null ? Number(topic.estimatedHours) : null,
+      estimatedHours: topic.estimatedHours !== null ? Number(topic.estimatedHours) : null,
       isActive: topic.isActive,
       createdAt: topic.createdAt,
       updatedAt: topic.updatedAt,
